@@ -82,12 +82,12 @@ class SqlEngineInput(BaseModel):
     natural_query: str
 
 class SqlEngineOutput(BaseModel):
-    did_execute: bool
+    markdown: Optional[str]
     error_message: Optional[str]
 
 class SqlEngine:
     def execute(self, input: SqlEngineInput) -> SqlEngineOutput:
         return SqlEngineOutput(
-            did_execute=True,
+            did_execute="markdown data"
             error_message=None
         )

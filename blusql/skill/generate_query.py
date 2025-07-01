@@ -1,12 +1,18 @@
 from pharia_skill import ChatParams, Csi, IndexPath, Message, skill
 from pydantic import BaseModel
 from typing import Optional
+from pharia_skill.csi.document_index import SearchResult
 
 from stubs import (
-    DbContextProvider, PhariaPastQueryProvider, SqlEngine,
-    SqlEngineInput
+    DbContextProvider, SqlEngine,
+    SqlEngineInput, PastQuery
 )
 
+NAMESPACE = "Studio"
+COLLECTION = "bluesql-collection"
+INDEX = "bluesql-index"
+
+VECTOR_K_SEARCH = 10  # Number of similar queries to retrieve
 
 class Input(BaseModel):
     natural_query: str
@@ -68,16 +74,43 @@ Keep the explanation concise and helpful."""
 
 @skill
 def generate_query(csi: Csi, input: Input) -> Output:
-    
     db_provider = DbContextProvider()
     db_context = db_provider.get_schema()
     
-    query_provider = PhariaPastQueryProvider()
-    similar_queries = query_provider.search_similar_queries(input.natural_query)
+    index_path = IndexPath(NAMESPACE, COLLECTION, INDEX)
+    search_results: list[SearchResult] = csi.search(index_path, input.natural_query, max_results=VECTOR_K_SEARCH)
+
+    print(f"Search results: {len(search_results)} found for query: {input.natural_query}")
+
+    documents: list[dict] = []
+    for search_result in search_results:
+        document_metadata = csi.document_metadata(search_result.document_path)
+        if isinstance(document_metadata, list) and document_metadata:
+            # Assuming the first item in the list is the relevant metadata
+            document_metadata = document_metadata[0]
+        elif isinstance(document_metadata, dict):
+            # If it's a dictionary, we can use it directly
+            document_metadata = document_metadata
+        else:
+            # If it's neither, we skip this result
+            continue
+        documents.append(document_metadata)
+
+    print(f"Documents retrieved: {len(documents)}")
+
+    similar_queries= [
+            PastQuery(
+                question=doc.get("question", ""),
+                query=doc.get("query", ""),
+                db_id=doc.get("db_id", "")
+            ) for doc in documents
+        ]
     
+    print(f"Similar queries extracted: {len(similar_queries)}")
+
     similar_queries_text = "\n".join([
-        f"Question: {q.question}\nSQL: {q.query}\nDatabase: {q.db_id}"
-        for q in similar_queries.similar_queries[:5]
+        f"Question: ```{q.question}```\nSQL: ```{q.query}```\nDatabase: ```{q.db_id}```"
+        for q in similar_queries
     ])
     
     sql_engine = SqlEngine()

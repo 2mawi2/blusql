@@ -1,0 +1,301 @@
+# Text-to-SQL with PhariaAI
+
+## Task
+
+Build a **Text-to-SQL System** that:
+
+1. Accepts natural language questions in a chat-like input (e.g., *"Show me the top 5 customers by total orders"*).
+2. Translates the question into an SQL query using a **PhariaAI skill**.
+3. Executes the SQL query against the Northwind database.
+4. Returns and displays the results in a user-friendly UI.
+5. Is exposed to end-users as a **custom application inside Pharia Assistant**.
+
+**Key Challenge**: The system must accurately translate diverse natural language queries into correct SQL statements, handling various query complexities from simple selections to complex joins and aggregations.
+
+**Deliverables**
+
+- A functioning Pharia Custom Application that runs the Text-to-SQL pipeline end-to-end.
+- Benchmarked solution on PhariaStudio demonstrating quality metrics on the provided test set.
+- Present your solution at the end of the workshop.
+
+**Tools & Data Provided**
+
+- Classic Northwind database (SQLite3 version) simulating an e-commerce dataset.
+- A test dataset with 100 curated examples for evaluation.
+- Database schema extraction utility (`db_service.py`).
+- PhariaAI
+
+---
+
+## Prerequisites
+
+- ✅ Completed **PhariaAcademy Learning** course.
+- ✅ Understand the core components of PhariaAI (PhariaStudio, PhariaKernel, PhariaAssistant).
+- ✅ Finish the technical setup along with the [E2e tutorial](https://github.com/Aleph-Alpha/tutorials/).
+
+---
+
+## Data Availability and Access
+
+| Dataset | Contents | Access Method |
+|---------|----------|---------------|
+| `Northwind Database` | Classic e-commerce dataset with customers, products, orders, employees | Clone and setup from [Northwind-SQLite3](https://github.com/jpwhite3/northwind-SQLite3) |
+| `examples.json` (Few-shot) | Few-shot examples for Document Indexing | Available in `/data/di/examples.json` |
+| `examples.json` (Test) | 100 curated test examples with questions and expected SQL queries | Available in `/data/test-data/examples.json` |
+| `Database Schemas` | Schema files for 5 evaluation databases | Available in `/data/test-data/database_schema/` |
+
+### About the Northwind Database
+
+The **Northwind database** is a classic sample database that simulates a typical e-commerce dataset. It includes tables for customers, products, orders, employees, suppliers, and more, making it ideal for demonstrating SQL query capabilities.
+
+### Data Structure
+
+**Few-shot Examples**: Each entry in `data/di/examples.json` contains:
+- `question`: Natural language question
+- `query`: Corresponding SQL query (stored as metadata)
+
+**Test Data**: Each entry in `data/test-data/examples.json` contains:
+- Natural language question
+- Expected SQL query
+
+**Database Schemas**: Located in `data/test-data/database_schema/`:
+- `car_1.sql`
+- `concert_singer.sql`
+- `employee_hire_evaluation.sql`
+- `flight_2.sql`
+- `pets_1.sql`
+
+---
+
+## Tools
+
+- **Pharia Custom Application template** – quickest way to scaffold the chat UI and connect your flow.
+- **PhariaStudio** – develop, debug and benchmark your solution.
+- **PhariaSearch Document Index** – store few-shot examples for retrieval-augmented generation.
+- **PhariaAssistant** – Use the PhariaAssistant to deploy and showcase your solution.
+- **Database Service** (`db_service.py`) – Extract schema and execute queries.
+
+Full documentation lives at [Aleph Alpha Docs](https://docs.aleph-alpha.com/).
+
+---
+
+## Models Available
+
+You may use **any model** visible in your **PhariaStudio Playground** workspace, including:
+
+- Generation Models (e.g., `llama-3.1-8b-instruct`, `llama-3.3-70b-instruct`, etc.)
+- Embedding Models (e.g., `pharia-1-embedding-4608-control`, `pharia-1-embedding-256-control`)
+
+Select the model in your flow configuration or switch interactively in the Playground.
+
+---
+
+## ⚙️ Setup Instructions
+
+### Step 1: Create a PhariaAI Application
+
+Follow the official [Pharia Applications Quick Start Guide](https://docs.aleph-alpha.com/products/pharia-ai/pharia-studio/tutorial/pharia-applications-quick-start/) to create a new application in Pharia Studio.
+
+---
+
+### Step 2: Set Up the Database
+
+We use a SQLite3-compatible version of the Northwind database.
+
+* Clone the repo and set up the database following this guide:
+  👉 [Northwind-SQLite3 Setup](https://github.com/jpwhite3/northwind-SQLite3)
+
+---
+
+### 3. Build a Generation Skill
+
+
+*Note*: As it is crucial to include the database structure in the prompt, we provide a script `utils/db_service.py` that connects to the SQLite database and extracts the schema in a structured SQL format suitable for prompting:
+
+```sql
+-- Example schema output
+CREATE TABLE Customers (
+    CustomerID TEXT PRIMARY KEY,
+    CompanyName TEXT,
+    ContactName TEXT,
+    ...
+);
+```
+
+In addition to schema extraction, the `db_service.py` script can also be used in the **backend of the application** to:
+
+* Maintain a persistent connection to the SQLite database.
+* Execute SQL queries generated by the skill and return query results to the frontend for display.
+
+
+#### 3.1 Upload Few-Shot Examples to the Document Index (DI)
+
+* Create a **Collection** and **Index** in DI.
+* Upload [Few-shot examples](data/di/examples.json) using the Intelligence Layer.
+
+  * Use `question` as the **document content**.
+  * Use `query` as the **document metadata**.
+
+#### 3.2 Prompt Engineering
+
+* Design system and user prompts for few-shot inference.
+* Include the **database schema** in the prompt. You can use `db_service.py` to extract the schema in a format like:
+
+```sql
+CREATE TABLE Customers (...);
+CREATE TABLE Orders (...);
+...
+```
+
+#### 3.3 Evaluate the Skill (DevCsi & Benchmarking)
+
+##### a. Wrap Skill as an Evaluation Task
+
+Instead of querying through the deployed skill, use `DevCsi` to wrap the logic in a `Task`.
+
+```python
+from intelligence_layer.core import NoOpTracer, Task, TaskSpan
+from pharia_skill.testing import DevCsi
+from qa import Input, Output, custom_rag
+
+class SQLGenerationTask(Task[Input, Output]):
+    def __init__(self) -> None:
+        self.dev_csi = DevCsi().with_studio(project=PHARIA_STUDIO_PROJECT_NAME)
+
+    def do_run(self, input: Input, task_span: TaskSpan) -> Output:
+        start_time = time.time()
+        output = custom_rag(self.dev_csi, input)
+        duration = time.time() - start_time
+
+        return Output(answer=output.answer, duration=duration)
+
+
+```
+
+##### b. Create Evaluation Dataset
+
+* Use [100 curated test examples](data/test-data/examples.json).
+* Each entry includes a natural language question and its expected SQL query.
+* Schemas for all 5 databases in the evaluation set are located in:
+  `data/test-data/database_schema/`
+
+##### c. Define Evaluation & Aggregation Logic
+
+* Use **LLM-as-a-Judge** to verify if the generated SQL leads to correct outputs.
+* Track additional metrics like generation latency.
+
+##### d. Run Benchmarks
+
+Once the task and evaluation logic are in place, benchmark across:
+
+* Different models.
+* Prompt templates and variations.
+
+---
+
+### Step 4: Deploy the Skill
+
+Ensure you've defined all required environment variables in your `.env` file:
+
+```env
+PHARIA_AI_TOKEN=
+PHARIA_KERNEL_ADDRESS=
+
+SKILL_REGISTRY=
+SKILL_REPOSITORY=
+SKILL_REGISTRY_USER=
+SKILL_REGISTRY_TOKEN=
+```
+
+Then use the `pharia-skill` CLI to:
+
+```bash
+pharia-skill build qa
+pharia-skill publish qa.wasm --name sql-gen
+```
+
+Update the `namespace.toml` file with your skill's name. You can now test the deployed skill using the `PhariaKernel` [API](https://pharia-kernel.partner.stage.product.pharia.com/api-docs).
+
+---
+
+### Step 5: Update the UI
+
+Once the skill is live:
+
+* Connect the UI to the skill endpoint.
+* Modify the frontend to:
+
+  * Display the **generated SQL query**.
+  * **Run** the query against the SQLite3 database.
+  * Present the **results in a table format**.
+
+---
+
+### Step 6: Run Application in Preview Mode
+
+Use the following script to test your application locally:
+
+```bash
+npx @aleph-alpha/pharia-ai-cli preview
+```
+
+---
+
+### Step 7: Deploy the Application to Pharia Assistant
+
+Before deployment:
+
+* Ensure your `.env` file includes all required credentials and config variables.
+```env
+PHARIA_AI_TOKEN=
+PHARIAOS_MANAGER_URL=
+
+IMAGE_REGISTRY=
+IMAGE_REPOSITORY=
+IMAGE_REGISTRY_USER=
+IMAGE_REGISTRY_PASSWORD=
+```
+* Build and deploy:
+
+```bash
+npx @aleph-alpha/pharia-ai-cli publish
+npx @aleph-alpha/pharia-ai-cli deploy
+```
+
+---
+
+## 🏁 You're Done!
+
+You now have a working Text-to-SQL interface powered by PhariaAI! Users can submit questions in plain English and get meaningful answers directly from a relational database.
+
+---
+
+## 📁 Project Structure
+
+```bash
+├── data
+│   ├── DI
+│   │   └── examples.json                  # Examples used for few-shot inference
+│   └── test-data
+│       ├── database_schemas              # Schemas used for evaluation
+│       │   ├── car_1.sql
+│       │   ├── concert_singer.sql
+│       │   ├── employee_hire_evaluation.sql
+│       │   ├── flight_2.sql
+│       │   └── pets_1.sql
+│       └── examples.json                 # Evaluation examples (100 samples)
+├── image
+│   └── README
+│       └── 1750539763543.png             # Application screenshot
+├── README.md
+└── utils
+    └── db_service.py                     # Used to extract schema from SQLite databases for prompts.
+                                          # Can also be used in the backend to:
+                                          # - Maintain a live connection to the SQLite database.
+                                          # - Execute SQL queries and return results to the frontend.              # This file
+```
+
+---
+
+Good luck, and happy building! 🚀
+

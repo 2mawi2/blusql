@@ -35,3 +35,4 @@ playwright-report/
 /.env
 /.python-version
 /skill/bin/pharia-skill-cli
+.env.fish

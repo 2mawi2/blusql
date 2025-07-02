@@ -116,7 +116,17 @@ def generate_query(csi: Csi, input: Input) -> Output:
         f"Question: ```{q.question}```\nSQL: ```{q.query}```\nDatabase: ```{q.db_id}```"
         for q in similar_queries
     ])
-    
+
+
+    sql_query = generate_sql(csi, input.natural_query, input.db_context, similar_queries_text)
+
+    return Output(
+        sql_query=sql_query,
+        markdown_result=None,
+        explanation="Query generated successfully"
+    )
+
+    """
     sql_engine = SqlEngine()
     max_retries = 5
     generated_sql = None
@@ -184,6 +194,19 @@ def generate_query(csi: Csi, input: Input) -> Output:
         explanation="Here is the data for the customers you requested, I hope you enjoy watching the tables!"
     )
 
+def generate_sql(csi, natural_query, db_context, similar_queries_text):
+    prompt = SQL_GENERATION_PROMPT.format(
+        db_technology=db_context.db_technology,
+        schema=db_context.schema,
+        similar_queries=similar_queries_text,
+        natural_query=natural_query
+    )
+    message = Message.user(prompt)
+    params = ChatParams(max_tokens=512)
+    response = csi.chat("llama-3.1-8b-instruct", [message], params)
+    generated_sql = response.message.content.strip()
+    return generated_sql
+    """
 
 if __name__ == "__main__":
     from pharia_skill.testing import DevCsi

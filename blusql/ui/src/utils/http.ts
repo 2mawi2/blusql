@@ -21,7 +21,6 @@ export const CUSTOM_RAG_SERVICE = new CustomRagService(HTTP_CLIENT)
 
 // import type { CustomRagResponse, CustomRagRequest } from '@/@core/models/api/customRag.ts'
 
-// Sleep function
 // function sleep(ms: number) {
 //   return new Promise((resolve) => setTimeout(resolve, ms))
 // }
@@ -30,8 +29,18 @@ export const CUSTOM_RAG_SERVICE = new CustomRagService(HTTP_CLIENT)
 //   async customQa(body: CustomRagRequest): Promise<CustomRagResponse> {
 //     await sleep(2000)
 //     return {
-//       query: body.question,
-//       markdown: `**Mocked answer for:** ${body.question}`,
+//       sql_query: `SELECT p.id, p.name, SUM(o.total) AS total_sales
+// FROM products p
+// JOIN orders o ON o.product_id = p.id
+// WHERE p.active = TRUE
+// GROUP BY p.id, p.name
+// HAVING SUM(o.total) > 500`,
+//       markdown_result: `| Product Name | Category   | Price | In Stock |
+// |--------------|------------|-------|----------|
+// | Apple        | Fruit      | $1    | Yes      |
+// | Carrot       | Vegetable  | $0.5  | No       |
+// | Bread        | Bakery     | $2    | Yes      |
+// | Milk         | Dairy      | $1.2  | Yes      |`,
 //       explanation: 'This is a mock response for testing purposes.',
 //     }
 //   }

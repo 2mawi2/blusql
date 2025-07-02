@@ -28,7 +28,10 @@ async def qa(
     try:
         request = await request.json()
         context = get_db_context()
-        request["schema"] = str(context)
+        request["db_context"] = {
+            "db_technology": context.db_technology,
+            "schema": context.schema
+        }
         response = await kernel.run(skill, token, request)
         return response
     except KernelException as exp:

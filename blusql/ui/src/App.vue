@@ -5,7 +5,7 @@
   </div> -->
   <div>
     <AaAppLayout
-      :header-props="{ title: 'BluSQL' }"
+      :header-props="{ title: 'BlueSQL' }"
       :user-avatar-props="{ userName: 'Test User', parent: parentEl }"
       :sidebar-props="{ items: items }"
       :accesibility-labels="{ helpButton: '' }"
@@ -39,7 +39,7 @@
               <AccordionItem
                 v-else-if="currentChatSession?.markdown"
                 is-initially-open
-                :title="'Your Output'"
+                :title="'SQL Query Output'"
               >
                 <vue-markdown :source="currentChatSession.markdown" />
               </AccordionItem>
@@ -49,9 +49,9 @@
               <AccordionItem
                 v-else-if="currentChatSession?.query"
                 :is-initially-open="false"
-                :title="'Generated SQL Query'"
+                :title="'SQL Query'"
               >
-                {{ currentChatSession.query }}
+                <SqlPreview :query="currentChatSession.query" />
               </AccordionItem>
 
               <!-- Buttons for managing session state -->
@@ -61,8 +61,8 @@
                   class="shrink-0 mt-4"
                   size="small"
                   variant="danger"
-                  @click="console.log('delete')"
-                  >{{ 'Delete Entry' }}</AaButton
+                  @click="chatHistory = []"
+                  >{{ 'Delete Session' }}</AaButton
                 >
               </div>
             </div>
@@ -86,6 +86,7 @@ import UsecaseQaInput from '@/components/UsecaseQaInput.vue'
 import BaseSkeleton from '@/components/loading/BaseSkeleton.vue'
 import { storeToRefs } from 'pinia'
 import AccordionItem from './components/AccordionItem.vue'
+import SqlPreview from './components/SqlPreview.vue'
 
 const props = withDefaults(
   defineProps<{
@@ -106,18 +107,9 @@ const items: SidebarOption[] = [
     link: {
       name: 'test',
     },
-    label: 'Summarize',
-    icon: 'i-material-symbols-radio-button-checked',
-    active: true,
-  },
-  {
-    id: '2',
-    link: {
-      name: '/test',
-    },
-    label: 'Summarize',
+    label: 'Query Checker',
     icon: 'i-material-symbols-radio-button-unchecked',
-    active: false,
+    active: true,
   },
 ]
 
@@ -134,22 +126,6 @@ const currentChatSession = computed(() =>
   chatHistory.value.find((entry) => entry.usecaseId === 'usecase-1'),
 )
 
-// function onDeleteChatHistory() {
-//   usecaseHistoryStore.deleteChatHistory.callActionOrOpenModal(deleteChatHistory)
-// }
-
-// function onConfirmDeleteQueryItem(checkboxChecked: boolean) {
-//   usecaseHistoryStore.deleteChatHistory.getConfirmActionCallback(deleteChatHistory)(checkboxChecked)
-// }
-
-// async function deleteChatHistory() {
-//   usecaseHistoryStore.clearChat(usecaseId.value)
-// }
-
-// async function onDeleteChatHistoryItem(idToDelete: string) {
-//   usecaseHistoryStore.deleteEntry(usecaseId.value, idToDelete)
-// }
-
 const onSubmit = async (usecaseId: string, question: string) => {
   await usecaseQaStore.submitQuestion(usecaseId, question)
   usecaseIdCounter.value++
@@ -165,5 +141,83 @@ onMounted(() => {
 <style lang="scss">
 :root {
   font-family: Raleway, sans-serif, ui-sans-serif;
+}
+
+table {
+  width: 100%;
+  border-radius: 1rem;
+  box-shadow: 0 4px 24px 0 rgba(0, 0, 0, 0.06);
+  border-collapse: separate;
+  border-spacing: 0;
+  overflow: hidden;
+}
+
+caption {
+  text-align: left;
+  font-weight: 700;
+  font-size: 24px;
+  line-height: 32px;
+  margin-bottom: 24px;
+}
+
+th {
+  padding: 1.25rem 2rem;
+  font-weight: 700;
+  font-size: 1rem;
+  line-height: 1.5rem;
+  color: black;
+  background-color: #fbfbfd;
+  border-width: 1px 1px 1px 0;
+  border-color: #f2f2f9;
+  border-style: solid;
+  overflow-wrap: break-word;
+  vertical-align: top;
+}
+
+th:first-child {
+  border-left-width: 1px;
+}
+
+th:last-child {
+  border-right-width: 1px;
+}
+
+td {
+  width: 50%;
+  overflow-wrap: break-word;
+  vertical-align: top;
+  color: black;
+  padding: 1rem 1.5rem;
+  font-size: 1rem;
+  line-height: 1.5rem;
+  font-weight: normal;
+  border-width: 1px 1px 1px 0;
+  border-color: #f2f2f9;
+  border-style: solid;
+  background-color: #fbfbfd;
+}
+
+td:first-child {
+  border-left-width: 1px;
+}
+
+td:not(:only-child):first-child {
+  font-weight: 700;
+  background-color: #fbfbfd;
+}
+
+tr:nth-child(even) td,
+tr:nth-child(even) th {
+  background-color: #f2f2f9;
+}
+
+tr:last-child td,
+tr:last-child th {
+  border-bottom-width: 1px;
+}
+
+h3 {
+  font-size: 1.5rem;
+  line-height: 2rem;
 }
 </style>

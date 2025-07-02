@@ -18,7 +18,7 @@ async def qa(
     token: str = Depends(get_token),
     kernel: Kernel = Depends(with_kernel),
 ) -> Json:
-    skill = Skill(namespace="app", name="generate-bluesql")
+    skill = Skill(namespace="customer-playground", name="generate-bluesql")
     try:
         response = await kernel.run(skill, token, await request.json())
         return response

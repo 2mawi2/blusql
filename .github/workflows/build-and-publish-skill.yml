@@ -1,4 +1,4 @@
-name: Build and Publish Pharia Skill
+name: Build and Publish Skill
 
 on:
   push:
@@ -6,25 +6,22 @@ on:
       - main
     paths:
       - 'skill/**'
-      - '.github/workflows/build-publish-skill.yml'
+      - '.github/workflows/build-and-publish-skill.yml'
   pull_request:
     branches:
       - main
     paths:
       - 'skill/**'
-      - '.github/workflows/build-publish-skill.yml'
   workflow_dispatch:
 
 jobs:
-  build-publish:
+  build:
     runs-on: ubuntu-latest
     
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
       
-      - name: Install Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
       
@@ -35,8 +32,7 @@ jobs:
       
       - name: Install dependencies
         working-directory: ./skill
-        run: |
-          uv sync --dev
+        run: uv sync --dev
       
       - name: Build skill
         working-directory: ./skill
@@ -54,8 +50,7 @@ jobs:
           image_registry: ${{ secrets.IMAGE_REGISTRY }}
           PHARIA_KERNEL_ADDRESS: ${{ secrets.PHARIA_KERNEL_ADDRESS }}
           PHARIA_STUDIO_ADDRESS: ${{ secrets.PHARIA_STUDIO_ADDRESS }}
-        run: |
-          uv run pharia-skill build generate_query
+        run: uv run pharia-skill build generate_query
       
       - name: Publish skill
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -74,11 +69,9 @@ jobs:
           image_registry: ${{ secrets.IMAGE_REGISTRY }}
           PHARIA_KERNEL_ADDRESS: ${{ secrets.PHARIA_KERNEL_ADDRESS }}
           PHARIA_STUDIO_ADDRESS: ${{ secrets.PHARIA_STUDIO_ADDRESS }}
-        run: |
-          uv run pharia-skill publish generate_query
+        run: uv run pharia-skill publish generate_query
       
-      - name: Upload WASM artifact
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
           name: generate-query-wasm
           path: skill/generate_query.wasm

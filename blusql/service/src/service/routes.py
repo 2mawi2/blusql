@@ -12,13 +12,13 @@ def health() -> HealthResponse:
     return HealthResponse(status="ok")
 
 
-@router.post("/qa")
+@router.post("/generate-bluesql")
 async def qa(
     request: Request,
     token: str = Depends(get_token),
     kernel: Kernel = Depends(with_kernel),
 ) -> Json:
-    skill = Skill(namespace="app", name="qa")
+    skill = Skill(namespace="app", name="generate-bluesql")
     try:
         response = await kernel.run(skill, token, await request.json())
         return response
@@ -30,3 +30,5 @@ async def qa(
             error_message += "\n\nPlease check https://docs.aleph-alpha.com/products/pharia-ai/pharia-studio/tutorial/pharia-applications-quick-start/#phariaai-application-skill for instructions on deploying the skill"
         print(error_message)
         raise HTTPException(exp.status_code, error_message) from exp
+
+        

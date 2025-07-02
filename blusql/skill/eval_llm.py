@@ -4,22 +4,16 @@ from generate_query import Input, Output, generate_query
 from intelligence_layer.core import NoOpTracer, Task, TaskSpan
 from dotenv import load_dotenv
 from env_generate_examples import generate_examples
-
-from dotenv import load_dotenv
+import logging
+from pharia_skill.testing import DevCsi
 from pydantic import BaseModel
-from statistics import mean
-from uuid import uuid4
 import os
-
 from intelligence_layer.connectors import StudioClient
-
 from intelligence_layer.core import NoOpTracer, Task, TaskSpan
-
 from intelligence_layer.evaluation import (
     Example,
     StudioDatasetRepository,
 )
-
 from eval_metrics import QaEvaluationLogic, QaAggregationLogic, QaEvaluation
 
 load_dotenv()
@@ -55,7 +49,7 @@ examples = [
     Example(
         input=Input(
             natural_query=example["question"],
-            schema=example["db_context_provider"].get_schema().schema,
+            schema=example["db_schema"],
         ),
         expected_output=Output(
             sql_query=None,
@@ -73,9 +67,6 @@ studio_dataset = studio_dataset_repo.create_dataset(
 
 studio_dataset.id
 
-import logging
-from pharia_skill.testing import DevCsi
-
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
@@ -88,11 +79,14 @@ if __name__ == "__main__":
 
     all_evaluations = []
 
+    example_count = 0
+    max_examples = 3
+
     for example_data in generate_examples():
         # --- Build input and expected output
         test_input = Input(
             natural_query=example_data["question"],
-            schema=example_data["db_context_provider"].get_schema().schema,
+            schema=example_data["db_schema"],
         )
         expected_output = ExpectedOutput(sql_query=example_data["query"])
 
@@ -120,9 +114,12 @@ if __name__ == "__main__":
 
         # Run only first example
         # break
+        example_count += 1
+        if example_count >= max_examples:
+            break
 
         # --- Aggregate scores across all evaluated examples
-        aggregated_scores = aggregator.aggregate(all_evaluations)
+    aggregated_scores = aggregator.aggregate(all_evaluations)
 
     print("\n=== Aggregated Evaluation Scores ===")
     print(f"Average Accuracy: {aggregated_scores.average_accuracy_score}")

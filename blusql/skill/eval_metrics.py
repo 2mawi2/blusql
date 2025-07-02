@@ -6,19 +6,9 @@ from pydantic import BaseModel
 from collections.abc import Iterable
 from typing import Iterable
 from statistics import mean
-from uuid import uuid4
-import requests
-import os
-
-from intelligence_layer.connectors import StudioClient
-
-from intelligence_layer.core import NoOpTracer, Task, TaskSpan
-
 from intelligence_layer.evaluation import (
     Example,
-    StudioDatasetRepository,
     AggregationLogic,
-    StudioBenchmarkRepository,
     SingleOutputEvaluationLogic,
 )
 

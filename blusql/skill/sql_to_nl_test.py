@@ -20,23 +20,20 @@ class CustomStubCsi(StubCsi):
         # Simulate different responses based on input content
         message_content = messages[0].content if messages else ""
         
-        if "customer" in message_content.lower():
-            response_content = """1. This table stores customer information for an e-commerce business
-2. It contains personal details like names, emails, and phone numbers
-3. The table tracks customer registration dates and account status
-4. It can help answer questions about customer demographics and activity
-5. The email field likely serves as a unique identifier for customer accounts"""
-        elif "order" in message_content.lower():
-            response_content = """1. Order management system for tracking customer purchases
-2. Links customers to their orders with foreign key relationships
-3. Captures order timing, status, and payment information
-4. Enables analysis of sales patterns and customer behavior
-5. Supports order fulfillment and customer service operations"""
+        if "how many customers" in message_content.lower():
+            response_content = """1. Based on the table structure, you would count rows in the Customers table to answer this question
+2. The table has a CustomerID as primary key, so each row represents one unique customer
+3. The table contains customer contact information including names, emails, and phone numbers
+4. The created_at timestamp field shows when each customer registered"""
+        elif "who are the top customers" in message_content.lower():
+            response_content = """1. This question requires joining the Orders table with Customers table to calculate customer rankings
+2. The customer_id foreign key links customers to their orders for aggregation
+3. You could rank customers by total_amount, number of orders, or order frequency
+4. The order_date field allows for time-based customer analysis"""
         else:
-            response_content = """1. Database table for storing structured information
-2. Contains various data fields with different types
-3. Supports business operations and data analysis
-4. Enables querying and reporting capabilities"""
+            response_content = """1. The question can be answered by analyzing the provided table structure
+2. The table contains relevant fields that relate to your query
+3. Additional insights depend on the specific relationships shown in the schema"""
         
         return ChatResponse(
             message=Message(
@@ -56,6 +53,7 @@ def csi() -> StubCsi:
 
 def test_sql_to_natural_language_customer_table(csi: StubCsi):
     test_input = Input(
+        user_question="How many customers do we have?",
         sql_table_markdown="""
         | Column | Type | Description |
         |--------|------|-------------|
@@ -71,12 +69,13 @@ def test_sql_to_natural_language_customer_table(csi: StubCsi):
     
     assert isinstance(result, Output)
     assert isinstance(result.natural_language_expressions, list)
-    assert len(result.natural_language_expressions) == 5
-    assert "customer information" in result.natural_language_expressions[0].lower()
+    assert len(result.natural_language_expressions) == 4
+    assert "count rows" in result.natural_language_expressions[0].lower()
 
 
 def test_sql_to_natural_language_order_table(csi: StubCsi):
     test_input = Input(
+        user_question="Who are the top customers by spending?",
         sql_table_markdown="""
         | Column | Type | Constraints | Description |
         |--------|------|-------------|-------------|
@@ -91,8 +90,8 @@ def test_sql_to_natural_language_order_table(csi: StubCsi):
     result = sql_to_natural_language(csi, test_input)
     
     assert isinstance(result, Output)
-    assert len(result.natural_language_expressions) == 5
-    assert "order management" in result.natural_language_expressions[0].lower()
+    assert len(result.natural_language_expressions) == 4
+    assert "joining" in result.natural_language_expressions[0].lower()
 
 
 def test_sql_to_natural_language_mock():
@@ -108,6 +107,7 @@ def test_sql_to_natural_language_mock():
     mock_csi.chat.return_value = mock_response
     
     test_input = Input(
+        user_question="What products do we sell?",
         sql_table_markdown="""
         | Column | Type | Description |
         |--------|------|-------------|
@@ -132,7 +132,10 @@ def test_sql_to_natural_language_empty_response():
     
     mock_csi.chat.return_value = mock_response
     
-    test_input = Input(sql_table_markdown="| id | INT | Primary key |")
+    test_input = Input(
+        user_question="What is this table for?",
+        sql_table_markdown="| id | INT | Primary key |"
+    )
     
     result = sql_to_natural_language(mock_csi, test_input)
     
@@ -148,7 +151,10 @@ def test_sql_to_natural_language_none_response():
     
     mock_csi.chat.return_value = mock_response
     
-    test_input = Input(sql_table_markdown="| id | INT | Primary key |")
+    test_input = Input(
+        user_question="What is this table for?", 
+        sql_table_markdown="| id | INT | Primary key |"
+    )
     
     result = sql_to_natural_language(mock_csi, test_input)
     
@@ -170,6 +176,7 @@ def test_sql_to_natural_language_with_tracing():
                 csi = DevCsi().with_studio("blusql-sql-to-nl")
                 
                 test_input = Input(
+                    user_question="How can I find user account details?",
                     sql_table_markdown="""
                     | Column | Type | Constraints | Description |
                     |--------|------|-------------|-------------|

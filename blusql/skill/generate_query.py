@@ -177,5 +177,12 @@ def generate_query(csi: Csi, input: Input) -> Output:
     return Output(
         sql_query=generated_sql,
         markdown_result=None,
-        explanation=explanation_response.message.content
+        explanation="Here is the data for the customers you requested, I hope you enjoy watching the tables!"
     )
+
+
+if __name__ == "__main__":
+    from pharia_skill.testing import DevCsi
+    dev_csi = DevCsi().with_studio("qa-marius")
+    inp = Input(natural_query='find me all customers ')
+    generate_query(dev_csi, inp)

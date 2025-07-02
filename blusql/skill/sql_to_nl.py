@@ -3,6 +3,7 @@ from pydantic import BaseModel
 
 
 class Input(BaseModel):
+    user_question: str
     sql_table_markdown: str
 
 
@@ -12,20 +13,18 @@ class Output(BaseModel):
 
 @skill
 def sql_to_natural_language(csi: Csi, input: Input) -> Output:
-    content = f"""You are an expert in SQL and natural language processing. Your task is to analyze the given SQL table structure in markdown format and extract meaningful natural language expressions that describe what this table represents and what kind of data it contains.
+    content = f"""You are an expert in SQL and natural language processing. Your task is to analyze the given SQL table structure and answer the user's question, then provide relevant insights.
 
-Please provide 5-10 natural language expressions that describe:
-1. What the table represents (its purpose/domain)
-2. What types of entities/records it stores
-3. Key relationships between columns
-4. What business questions this table could help answer
-5. Notable patterns or constraints in the data structure
+User Question: {input.user_question}
 
-Here is the SQL table in markdown format:
-
+SQL Table Structure:
 {input.sql_table_markdown}
 
-Please return only the natural language expressions as a numbered list, one per line, without any additional explanation or formatting."""
+Please provide a response that:
+1. First answers the user's question based on what can be determined from the table structure
+2. Then provides 2-5 additional insights about the table that are relevant to the user's question
+
+Focus on being concise and relevant. Return only the numbered responses, one per line, without additional formatting."""
 
     message = Message.user(content)
     params = ChatParams(max_tokens=512)

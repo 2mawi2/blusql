@@ -49,7 +49,6 @@ jobs:
           SKILL_REPOSITORY: ${{ secrets.SKILL_REPOSITORY }}
           SKILL_REGISTRY_USER: ${{ secrets.SKILL_REGISTRY_USER }}
           SKILL_REGISTRY_TOKEN: ${{ secrets.SKILL_REGISTRY_TOKEN }}
-          image_registry: ${{ secrets.IMAGE_REGISTRY }}
           PHARIA_KERNEL_ADDRESS: ${{ secrets.PHARIA_KERNEL_ADDRESS }}
           PHARIA_STUDIO_ADDRESS: ${{ secrets.PHARIA_STUDIO_ADDRESS }}
         run: uv run pharia-skill build generate_query
@@ -68,7 +67,6 @@ jobs:
           SKILL_REPOSITORY: ${{ secrets.SKILL_REPOSITORY }}
           SKILL_REGISTRY_USER: ${{ secrets.SKILL_REGISTRY_USER }}
           SKILL_REGISTRY_TOKEN: ${{ secrets.SKILL_REGISTRY_TOKEN }}
-          image_registry: ${{ secrets.IMAGE_REGISTRY }}
           PHARIA_KERNEL_ADDRESS: ${{ secrets.PHARIA_KERNEL_ADDRESS }}
           PHARIA_STUDIO_ADDRESS: ${{ secrets.PHARIA_STUDIO_ADDRESS }}
         run: uv run pharia-skill publish generate_query

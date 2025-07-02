@@ -3,10 +3,7 @@ from pydantic import BaseModel
 from typing import Optional
 from pharia_skill.csi.document_index import SearchResult
 
-from stubs import (
-    SqlEngine,
-    SqlEngineInput, PastQuery
-)
+from stubs import SqlEngine, SqlEngineInput, PastQuery
 
 NAMESPACE = "Studio"
 COLLECTION = "bluesql-collection"
@@ -14,9 +11,11 @@ INDEX = "bluesql-index"
 
 VECTOR_K_SEARCH = 10  # Number of similar queries to retrieve
 
+
 class DbContext(BaseModel):
     db_technology: str
     schema: str
+
 
 class Input(BaseModel):
     natural_query: str
@@ -78,11 +77,15 @@ Keep the explanation concise and helpful."""
 @skill
 def generate_query(csi: Csi, input: Input) -> Output:
     db_context = input.db_context
-       
-    index_path = IndexPath(NAMESPACE, COLLECTION, INDEX)
-    search_results: list[SearchResult] = csi.search(index_path, input.natural_query, max_results=VECTOR_K_SEARCH)
 
-    print(f"Search results: {len(search_results)} found for query: {input.natural_query}")
+    index_path = IndexPath(NAMESPACE, COLLECTION, INDEX)
+    search_results: list[SearchResult] = csi.search(
+        index_path, input.natural_query, max_results=VECTOR_K_SEARCH
+    )
+
+    print(
+        f"Search results: {len(search_results)} found for query: {input.natural_query}"
+    )
 
     documents: list[dict] = []
     for search_result in search_results:
@@ -100,23 +103,27 @@ def generate_query(csi: Csi, input: Input) -> Output:
 
     print(f"Documents retrieved: {len(documents)}")
 
-    similar_queries= [
-            PastQuery(
-                question=doc.get("question", ""),
-                query=doc.get("query", ""),
-                db_id=doc.get("db_id", "")
-            ) for doc in documents
-        ]
-    
+    similar_queries = [
+        PastQuery(
+            question=doc.get("question", ""),
+            query=doc.get("query", ""),
+            db_id=doc.get("db_id", ""),
+        )
+        for doc in documents
+    ]
+
     print(f"Similar queries extracted: {len(similar_queries)}")
 
-    similar_queries_text = "\n".join([
-        f"Question: ```{q.question}```\nSQL: ```{q.query}```\nDatabase: ```{q.db_id}```"
-        for q in similar_queries
-    ])
+    similar_queries_text = "\n".join(
+        [
+            f"Question: ```{q.question}```\nSQL: ```{q.query}```\nDatabase: ```{q.db_id}```"
+            for q in similar_queries
+        ]
+    )
 
-
-    sql_query = generate_sql(csi, input.natural_query, input.db_context, similar_queries_text)
+    sql_query = generate_sql(
+        csi, input.natural_query, input.db_context, similar_queries_text
+    )
 
     return Output(
         sql_query=sql_query,
@@ -190,12 +197,14 @@ def generate_query(csi: Csi, input: Input) -> Output:
         explanation="Here is the data for the customers you requested, I hope you enjoy watching the tables!"
     )
 """
+
+
 def generate_sql(csi, natural_query, db_context, similar_queries_text):
     prompt = SQL_GENERATION_PROMPT.format(
         db_technology=db_context.db_technology,
         schema=db_context.schema,
         similar_queries=similar_queries_text,
-        natural_query=natural_query
+        natural_query=natural_query,
     )
     message = Message.user(prompt)
     params = ChatParams(max_tokens=512)
@@ -206,6 +215,7 @@ def generate_sql(csi, natural_query, db_context, similar_queries_text):
 
 if __name__ == "__main__":
     from pharia_skill.testing import DevCsi
+
     dev_csi = DevCsi().with_studio("qa-marius")
-    inp = Input(natural_query='find me all customers ')
+    inp = Input(natural_query="find me all customers ")
     generate_query(dev_csi, inp)

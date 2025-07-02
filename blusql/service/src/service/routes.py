@@ -31,4 +31,24 @@ async def qa(
         print(error_message)
         raise HTTPException(exp.status_code, error_message) from exp
 
+
+@router.post("/sql-to-nl")
+async def sql_to_nl(
+    request: Request,
+    token: str = Depends(get_token),
+    kernel: Kernel = Depends(with_kernel),
+) -> Json:
+    skill = Skill(namespace="customer-playground", name="sql_to_nl")
+    try:
+        response = await kernel.run(skill, token, await request.json())
+        return response
+    except KernelException as exp:
+        error_message = ",".join(exp.args)
+        if error_message.startswith(
+            "Sorry, We could not find the skill you requested in its namespace"
+        ):
+            error_message += "\n\nPlease check https://docs.aleph-alpha.com/products/pharia-ai/pharia-studio/tutorial/pharia-applications-quick-start/#phariaai-application-skill for instructions on deploying the skill"
+        print(error_message)
+        raise HTTPException(exp.status_code, error_message) from exp
+
         

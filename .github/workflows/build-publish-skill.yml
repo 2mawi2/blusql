@@ -1,0 +1,86 @@
+name: Build and Publish Pharia Skill
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'skill/**'
+      - '.github/workflows/build-publish-skill.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'skill/**'
+      - '.github/workflows/build-publish-skill.yml'
+  workflow_dispatch:
+
+jobs:
+  build-publish:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+          cache-dependency-glob: "skill/uv.lock"
+      
+      - name: Install dependencies
+        working-directory: ./skill
+        run: |
+          uv sync --dev
+      
+      - name: Build skill
+        working-directory: ./skill
+        env:
+          PHARIA_AI_TOKEN: ${{ secrets.PHARIA_AI_TOKEN }}
+          PHARIAOS_MANAGER_URL: ${{ secrets.PHARIAOS_MANAGER_URL }}
+          IMAGE_REGISTRY: ${{ secrets.IMAGE_REGISTRY }}
+          IMAGE_REPOSITORY: ${{ secrets.IMAGE_REPOSITORY }}
+          IMAGE_REGISTRY_USER: ${{ secrets.IMAGE_REGISTRY_USER }}
+          IMAGE_REGISTRY_PASSWORD: ${{ secrets.IMAGE_REGISTRY_PASSWORD }}
+          SKILL_REGISTRY: ${{ secrets.SKILL_REGISTRY }}
+          SKILL_REPOSITORY: ${{ secrets.SKILL_REPOSITORY }}
+          SKILL_REGISTRY_USER: ${{ secrets.SKILL_REGISTRY_USER }}
+          SKILL_REGISTRY_TOKEN: ${{ secrets.SKILL_REGISTRY_TOKEN }}
+          image_registry: ${{ secrets.IMAGE_REGISTRY }}
+          PHARIA_KERNEL_ADDRESS: ${{ secrets.PHARIA_KERNEL_ADDRESS }}
+          PHARIA_STUDIO_ADDRESS: ${{ secrets.PHARIA_STUDIO_ADDRESS }}
+        run: |
+          uv run pharia-skill build generate_query
+      
+      - name: Publish skill
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        working-directory: ./skill
+        env:
+          PHARIA_AI_TOKEN: ${{ secrets.PHARIA_AI_TOKEN }}
+          PHARIAOS_MANAGER_URL: ${{ secrets.PHARIAOS_MANAGER_URL }}
+          IMAGE_REGISTRY: ${{ secrets.IMAGE_REGISTRY }}
+          IMAGE_REPOSITORY: ${{ secrets.IMAGE_REPOSITORY }}
+          IMAGE_REGISTRY_USER: ${{ secrets.IMAGE_REGISTRY_USER }}
+          IMAGE_REGISTRY_PASSWORD: ${{ secrets.IMAGE_REGISTRY_PASSWORD }}
+          SKILL_REGISTRY: ${{ secrets.SKILL_REGISTRY }}
+          SKILL_REPOSITORY: ${{ secrets.SKILL_REPOSITORY }}
+          SKILL_REGISTRY_USER: ${{ secrets.SKILL_REGISTRY_USER }}
+          SKILL_REGISTRY_TOKEN: ${{ secrets.SKILL_REGISTRY_TOKEN }}
+          image_registry: ${{ secrets.IMAGE_REGISTRY }}
+          PHARIA_KERNEL_ADDRESS: ${{ secrets.PHARIA_KERNEL_ADDRESS }}
+          PHARIA_STUDIO_ADDRESS: ${{ secrets.PHARIA_STUDIO_ADDRESS }}
+        run: |
+          uv run pharia-skill publish generate_query
+      
+      - name: Upload WASM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: generate-query-wasm
+          path: skill/generate_query.wasm
+          retention-days: 7

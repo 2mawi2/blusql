@@ -179,3 +179,10 @@ def generate_query(csi: Csi, input: Input) -> Output:
         markdown_result=None,
         explanation=explanation_response.message.content
     )
+
+
+if __name__ == "__main__":
+    from pharia_skill.testing import DevCsi
+    dev_csi = DevCsi().with_studio("qa-marius")
+    inp = Input(natural_query='find me all customers ')
+    generate_query(dev_csi, inp)

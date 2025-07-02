@@ -3,6 +3,7 @@ import time
 from generate_query import Input, Output, generate_query
 from intelligence_layer.core import NoOpTracer, Task, TaskSpan
 from dotenv import load_dotenv
+from env_generate_examples import generate_examples
 
 load_dotenv()
 
@@ -16,23 +17,29 @@ class Text2SQLEvaluationTask(Task):
         output = generate_query(self.dev_csi, input)
         duration = time.time() - start_time
 
-        return Output(answer=output.answer, duration=duration)
+        return output
 
 
 if __name__ == "__main__":
 
-    test_input = Input(natural_query="How many singers do we have?")
+    for example in generate_examples():
 
-    # Initialize task
-    task = Text2SQLEvaluationTask()
+        test_input = Input(
+            natural_query=example["question"],
+            schema=example["db_context_provider"].get_schema().schema,
+        )
 
-    # Run the task with dummy span (NoOpTracer just does nothing — good for testing)
-    output = task.do_run(test_input, task_span=NoOpTracer())
+        task = Text2SQLEvaluationTask()
 
-    # Print the result
-    print("\n--- Evaluation Output ---")
-    print(f"SQL Query:\n{output.sql_query}\n")
-    if output.markdown_result:
-        print("Markdown Table:\n", output.markdown_result)
-    if output.explanation:
-        print("Explanation:\n", output.explanation)
+        # Run the task with dummy span (NoOpTracer just does nothing — good for testing)
+        output = task.do_run(test_input, task_span=NoOpTracer())
+
+        # Print the result
+        print("\n--- Evaluation Output ---")
+        print(f"SQL Query:\n{output.sql_query}\n")
+        if output.markdown_result:
+            print("Markdown Table:\n", output.markdown_result)
+        if output.explanation:
+            print("Explanation:\n", output.explanation)
+
+        break

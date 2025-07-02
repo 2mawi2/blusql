@@ -14,7 +14,13 @@
         <!--        Empty diff to keep layout-->
       </div>
       <div class="gap-x-XS flex flex-row justify-end">
-        <AaButton class="shrink-0" size="small" variant="text" @click="emit('clearAll')">
+        <AaButton
+          class="shrink-0"
+          size="small"
+          variant="text"
+          :disabled="usecaseQaInputStore.getUsecaseState(usecaseId).question === ''"
+          @click="emit('clearInput')"
+        >
           {{ 'Clear' }}
         </AaButton>
         <AaButton
@@ -50,7 +56,7 @@ const props = withDefaults(
 )
 
 const emit = defineEmits<{
-  clearAll: []
+  clearInput: []
   onSubmit: [usecaseId: string, question: string, file?: File, collection?: string]
 }>()
 

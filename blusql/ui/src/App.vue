@@ -21,10 +21,11 @@
               :usecase-id="usecaseId"
               :request-processing="isProcessingRequest[usecaseId]"
               @on-submit="onSubmit"
+              @clear-input="usecaseQaInputStore.getUsecaseState(usecaseId).question = ''"
             />
             <div class="px-1">
               <!-- Explanation -->
-              <BaseSkeleton v-if="isProcessingRequest[usecaseId]" class="h-20 mb-4 mt-4" />
+              <BaseSkeleton v-if="isProcessingRequest[usecaseId]" class="h-30 mb-4 mt-4" />
               <AccordionItem
                 v-else-if="currentChatSession?.explanation"
                 is-initially-open
@@ -35,7 +36,7 @@
               </AccordionItem>
 
               <!-- Markdown -->
-              <BaseSkeleton v-if="isProcessingRequest[usecaseId]" />
+              <BaseSkeleton v-if="isProcessingRequest[usecaseId]" class="h-70" />
               <AccordionItem
                 v-else-if="currentChatSession?.markdown"
                 is-initially-open
@@ -45,7 +46,7 @@
               </AccordionItem>
 
               <!-- Query SQL -->
-              <BaseSkeleton v-if="isProcessingRequest[usecaseId]" class="h-20 mb-4 mt-4" />
+              <BaseSkeleton v-if="isProcessingRequest[usecaseId]" class="h-30 mb-4 mt-4" />
               <AccordionItem
                 v-else-if="currentChatSession?.query"
                 :is-initially-open="false"
@@ -56,7 +57,7 @@
 
               <!-- Buttons for managing session state -->
               <BaseSkeleton v-if="isProcessingRequest[usecaseId]" />
-              <div v-else-if="currentChatSession?.markdown" class="">
+              <div v-else-if="currentChatSession">
                 <AaButton
                   class="shrink-0 mt-4"
                   size="small"
@@ -87,6 +88,7 @@ import BaseSkeleton from '@/components/loading/BaseSkeleton.vue'
 import { storeToRefs } from 'pinia'
 import AccordionItem from './components/AccordionItem.vue'
 import SqlPreview from './components/SqlPreview.vue'
+import { useUsecaseQaInputStore } from './stores/usecaseQaInput'
 
 const props = withDefaults(
   defineProps<{
@@ -112,6 +114,8 @@ const items: SidebarOption[] = [
     active: true,
   },
 ]
+
+const usecaseQaInputStore = useUsecaseQaInputStore()
 
 const usecaseIdCounter = ref(1)
 const usecaseId = computed(() => `usecase-${usecaseIdCounter.value}`)

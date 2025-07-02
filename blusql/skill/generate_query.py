@@ -153,7 +153,7 @@ def generate_query(csi: Csi, input: Input) -> Output:
             return Output(
                 sql_query=generated_sql,
                 markdown_result=result.markdown,
-                explanation=None
+                explanation="Sample explaination"
             )
     
     try:

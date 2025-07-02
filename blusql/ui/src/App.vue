@@ -1,13 +1,91 @@
+<template>
+  <!-- <div class="font-bold text-4xl">
+    <span class="text-blue">Blu</span>
+    <span>sql</span>
+  </div> -->
+  <div>
+    <AaAppLayout
+      :header-props="{ title: 'BluSQL' }"
+      :user-avatar-props="{ userName: 'Test User', parent: parentEl }"
+      :sidebar-props="{ items: items }"
+      :accesibility-labels="{ helpButton: '' }"
+    >
+      <template #app-content>
+        <BaseLayout>
+          <template #title>
+            <span>Query the database by describing what you want to see</span>
+          </template>
+          <template #main>
+            <!-- User Input -->
+            <UsecaseQaInput
+              :usecase-id="usecaseId"
+              :request-processing="isProcessingRequest[usecaseId]"
+              @on-submit="onSubmit"
+            />
+            <div class="px-1">
+              <!-- Explanation -->
+              <BaseSkeleton v-if="isProcessingRequest[usecaseId]" class="h-20 mb-4 mt-4" />
+              <AccordionItem
+                v-else-if="currentChatSession?.explanation"
+                is-initially-open
+                class="b-none"
+                :title="'Explanation'"
+              >
+                {{ currentChatSession.explanation }}
+              </AccordionItem>
+
+              <!-- Markdown -->
+              <BaseSkeleton v-if="isProcessingRequest[usecaseId]" />
+              <AccordionItem
+                v-else-if="currentChatSession?.markdown"
+                is-initially-open
+                :title="'Your Output'"
+              >
+                <vue-markdown :source="currentChatSession.markdown" />
+              </AccordionItem>
+
+              <!-- Query SQL -->
+              <BaseSkeleton v-if="isProcessingRequest[usecaseId]" class="h-20 mb-4 mt-4" />
+              <AccordionItem
+                v-else-if="currentChatSession?.query"
+                :is-initially-open="false"
+                :title="'Generated SQL Query'"
+              >
+                {{ currentChatSession.query }}
+              </AccordionItem>
+
+              <!-- Buttons for managing session state -->
+              <BaseSkeleton v-if="isProcessingRequest[usecaseId]" />
+              <div v-else-if="currentChatSession?.markdown" class="">
+                <AaButton
+                  class="shrink-0 mt-4"
+                  size="small"
+                  variant="danger"
+                  @click="console.log('delete')"
+                  >{{ 'Delete Entry' }}</AaButton
+                >
+              </div>
+            </div>
+          </template>
+        </BaseLayout>
+      </template>
+    </AaAppLayout>
+  </div>
+</template>
+
 <script lang="ts" setup>
-import SkillLayout from '@/@core/layouts/SkillLayout.vue'
+import VueMarkdown from 'vue-markdown-render'
+import { AaAppLayout, AaButton, type SidebarOption } from '@aleph-alpha/ds-components-vue'
+import { computed, ref } from 'vue'
+import BaseLayout from '@/@core/layouts/BaseLayout.vue'
 import { HTTP_CLIENT } from '@/utils/http.ts'
 import { onMounted } from 'vue'
 import { useUsecaseQaStore } from '@/stores/usecaseQa.ts'
-import { useUsecaseQaChatStore } from '@/stores/usecaseQaChat.ts'
+import { useUsecaseHistoryStore } from '@/stores/usecaseHistory'
 import UsecaseQaInput from '@/components/UsecaseQaInput.vue'
-import UsecaseQaChatEntry from '@/components/UsecaseQaChatEntry.vue'
-import UsecaseQaTopBanner from '@/components/UsecaseQaTopBanner.vue'
-import ModalActionWithCheckbox from '@/@core/components/Modal/ModalActionWithCheckbox.vue'
+import BaseSkeleton from '@/components/loading/BaseSkeleton.vue'
+import { storeToRefs } from 'pinia'
+import AccordionItem from './components/AccordionItem.vue'
 
 const props = withDefaults(
   defineProps<{
@@ -20,77 +98,69 @@ const props = withDefaults(
   },
 )
 
-const usecaseId = 'default'
+const parentEl = ref<HTMLElement | null>(null)
 
-const usecaseQaChatStore = useUsecaseQaChatStore()
+const items: SidebarOption[] = [
+  {
+    id: '1',
+    link: {
+      name: 'test',
+    },
+    label: 'Summarize',
+    icon: 'i-material-symbols-radio-button-checked',
+    active: true,
+  },
+  {
+    id: '2',
+    link: {
+      name: '/test',
+    },
+    label: 'Summarize',
+    icon: 'i-material-symbols-radio-button-unchecked',
+    active: false,
+  },
+]
+
+const usecaseIdCounter = ref(1)
+const usecaseId = computed(() => `usecase-${usecaseIdCounter.value}`)
+
 const usecaseQaStore = useUsecaseQaStore()
+const { isProcessingRequest } = storeToRefs(usecaseQaStore)
 
-function onDeleteChatHistory() {
-  usecaseQaChatStore.deleteChatHistory.callActionOrOpenModal(deleteChatHistory)
-}
+const usecaseHistoryStore = useUsecaseHistoryStore()
+const { chatHistory } = storeToRefs(usecaseHistoryStore)
 
-function onConfirmDeleteChatHistory(checkboxChecked: boolean) {
-  usecaseQaChatStore.deleteChatHistory.getConfirmActionCallback(deleteChatHistory)(checkboxChecked)
-}
+const currentChatSession = computed(() =>
+  chatHistory.value.find((entry) => entry.usecaseId === 'usecase-1'),
+)
 
-async function deleteChatHistory() {
-  usecaseQaChatStore.clearChat(usecaseId)
-}
+// function onDeleteChatHistory() {
+//   usecaseHistoryStore.deleteChatHistory.callActionOrOpenModal(deleteChatHistory)
+// }
 
-async function onDeleteChatHistoryItem(idToDelete: string) {
-  usecaseQaChatStore.deleteEntry(usecaseId, idToDelete)
-}
+// function onConfirmDeleteQueryItem(checkboxChecked: boolean) {
+//   usecaseHistoryStore.deleteChatHistory.getConfirmActionCallback(deleteChatHistory)(checkboxChecked)
+// }
+
+// async function deleteChatHistory() {
+//   usecaseHistoryStore.clearChat(usecaseId.value)
+// }
+
+// async function onDeleteChatHistoryItem(idToDelete: string) {
+//   usecaseHistoryStore.deleteEntry(usecaseId.value, idToDelete)
+// }
 
 const onSubmit = async (usecaseId: string, question: string) => {
   await usecaseQaStore.submitQuestion(usecaseId, question)
+  usecaseIdCounter.value++
 }
 
 onMounted(() => {
   HTTP_CLIENT.updateConfig({ baseURL: props.serviceBaseUrl })
   HTTP_CLIENT.setBearerToken(props.userToken)
+  console.log(props.userToken)
 })
 </script>
-
-<template>
-  <Teleport v-if="usecaseQaChatStore.deleteChatHistory.showModal" to="body">
-    <ModalActionWithCheckbox
-      :title="'Delete chat history'"
-      :cancel-button-text="'Cancel'"
-      :confirm-button-text="'Delete'"
-      :content="'Are you sure you want to delete the chat history?'"
-      @cancel="usecaseQaChatStore.deleteChatHistory.onCloseModal"
-      @close="usecaseQaChatStore.deleteChatHistory.onCloseModal"
-      @confirm="onConfirmDeleteChatHistory"
-    />
-  </Teleport>
-  <UsecaseQaTopBanner />
-  <SkillLayout :skill-title="'QA Usecase'">
-    <div class="flex h-[calc(100%_-_157px)] w-full flex-row items-center">
-      <section
-        class="p-y-XL w-182 mx-auto flex h-full flex-col justify-between self-stretch overflow-y-hidden"
-      >
-        <div class="w-full flex-col overflow-y-auto">
-          <div class="flex h-full w-full flex-col-reverse gap-10 overflow-y-auto">
-            <UsecaseQaChatEntry
-              v-for="item in usecaseQaChatStore.reversedChatHistory(usecaseId)"
-              :key="item.questionId"
-              :chat-entry="item"
-              @delete="onDeleteChatHistoryItem($event)"
-            />
-          </div>
-        </div>
-        <div class="w-full flex-col">
-          <UsecaseQaInput
-            :usecase-id="usecaseId"
-            :request-processing="usecaseQaStore.isProcessingRequest[usecaseId]"
-            @on-submit="onSubmit"
-            @clear-all="onDeleteChatHistory"
-          />
-        </div>
-      </section>
-    </div>
-  </SkillLayout>
-</template>
 
 <style lang="scss">
 :root {

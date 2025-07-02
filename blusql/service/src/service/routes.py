@@ -3,9 +3,15 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from service.dependencies import get_token, with_kernel
 from service.kernel import Json, Kernel, KernelException, Skill
 from service.models import HealthResponse
+from service.extract_schema import get_db_context
+from pydantic import BaseModel
+from typing import Optional
 
 router: APIRouter = APIRouter()
-
+        
+class Input(BaseModel):
+    natural_query: str
+    schema: Optional[str] = None
 
 @router.get("/health")
 def health() -> HealthResponse:
@@ -20,7 +26,13 @@ async def qa(
 ) -> Json:
     skill = Skill(namespace="customer-playground", name="generate-bluesql")
     try:
-        response = await kernel.run(skill, token, await request.json())
+        request = await request.json()
+        context = get_db_context()
+        request["db_context"] = {
+            "db_technology": context.db_technology,
+            "schema": context.schema
+        }
+        response = await kernel.run(skill, token, request)
         return response
     except KernelException as exp:
         error_message = ",".join(exp.args)

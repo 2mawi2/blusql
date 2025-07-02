@@ -28,6 +28,14 @@ export interface UsecaseQaDocumentIndexChatEntry extends BaseQaChatEntry {
 
 export type UsecaseQaChatEntry = UsecaseQaDocumentChatEntry | UsecaseQaDocumentIndexChatEntry
 
+export interface UsecaseHistoryEntry {
+  usecaseId: string
+  question: string
+  query: string
+  markdown: string
+  explanation: string
+}
+
 export type UsecaseQaChatInitializationEntry =
   | Omit<UsecaseQaDocumentChatEntry, 'questionId' | 'timestamp' | 'answer'>
   | Omit<UsecaseQaDocumentIndexChatEntry, 'questionId' | 'timestamp' | 'answer'>

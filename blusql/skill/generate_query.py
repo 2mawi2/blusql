@@ -4,7 +4,7 @@ from typing import Optional
 from pharia_skill.csi.document_index import SearchResult
 
 from stubs import (
-    DbContextProvider, SqlEngine,
+    DbContextProvider, SqlEngine, DbContext,
     SqlEngineInput, PastQuery
 )
 
@@ -16,6 +16,7 @@ VECTOR_K_SEARCH = 10  # Number of similar queries to retrieve
 
 class Input(BaseModel):
     natural_query: str
+    schema: Optional[str] = None
 
 
 class Output(BaseModel):
@@ -74,9 +75,12 @@ Keep the explanation concise and helpful."""
 
 @skill
 def generate_query(csi: Csi, input: Input) -> Output:
-    db_provider = DbContextProvider()
-    db_context = db_provider.get_schema()
-    
+    if input.schema is None:
+        db_provider = DbContextProvider()
+        db_context = db_provider.get_schema()
+    else:
+        db_context = DbContext(schema=input.schema, db_technology="PostgreSQL Version 10")
+
     index_path = IndexPath(NAMESPACE, COLLECTION, INDEX)
     search_results: list[SearchResult] = csi.search(index_path, input.natural_query, max_results=VECTOR_K_SEARCH)
 

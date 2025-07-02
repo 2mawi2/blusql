@@ -1,6 +1,6 @@
 from pharia_skill.testing import DevCsi
 import time
-from generate_query import Input, Output, generate_query
+from generate_query import Input, Output, generate_query, DbContext
 from intelligence_layer.core import NoOpTracer, Task, TaskSpan
 from dotenv import load_dotenv
 from env_generate_examples import generate_examples
@@ -15,6 +15,7 @@ from intelligence_layer.evaluation import (
     StudioDatasetRepository,
 )
 from eval_metrics import QaEvaluationLogic, QaAggregationLogic, QaEvaluation
+
 
 load_dotenv()
 
@@ -45,11 +46,14 @@ class ExpectedOutput(BaseModel):
 
 studio_dataset_repo = StudioDatasetRepository(studio_client=studio_client)
 
+
 examples = [
     Example(
         input=Input(
+            # natural_query=example["question"],
+            # schema=example["db_schema"],
             natural_query=example["question"],
-            schema=example["db_schema"],
+            db_context=example["db_context"],
         ),
         expected_output=Output(
             sql_query=None,
@@ -86,8 +90,9 @@ if __name__ == "__main__":
         # --- Build input and expected output
         test_input = Input(
             natural_query=example_data["question"],
-            schema=example_data["db_schema"],
+            db_context=example_data["db_context"],
         )
+
         expected_output = ExpectedOutput(sql_query=example_data["query"])
 
         example = Example(input=test_input, expected_output=expected_output)

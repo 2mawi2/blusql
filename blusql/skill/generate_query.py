@@ -73,10 +73,9 @@ Keep the explanation concise and helpful."""
 
 
 @skill
-def generate_query(csi: Csi, input: Input, db_provider: Optional[DbContextProvider]=None) -> Output:
-    if db_provider is None:
-        db_provider = DbContextProvider()
-        db_context = db_provider.get_schema()
+def generate_query(csi: Csi, input: Input) -> Output:
+    db_provider = DbContextProvider()
+    db_context = db_provider.get_schema()
     
     index_path = IndexPath(NAMESPACE, COLLECTION, INDEX)
     search_results: list[SearchResult] = csi.search(index_path, input.natural_query, max_results=VECTOR_K_SEARCH)

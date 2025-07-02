@@ -9,20 +9,22 @@ from pharia_skill.testing import DevCsi
 from pydantic import BaseModel
 import os
 from intelligence_layer.connectors import StudioClient
-from intelligence_layer.core import NoOpTracer, Task, TaskSpan
 from intelligence_layer.evaluation import (
     Example,
     StudioDatasetRepository,
+    StudioBenchmarkRepository,
 )
 from eval_metrics import QaEvaluationLogic, QaAggregationLogic, QaEvaluation
 
 
 load_dotenv()
 
+PROJECT_NAME = "bluesql"
+
 
 class Text2SQLEvaluationTask(Task):
     def __init__(self):
-        self.dev_csi = DevCsi().with_studio(project="test-studio")
+        self.dev_csi = DevCsi().with_studio(project=PROJECT_NAME)
 
     def do_run(self, input: Input, task_span: TaskSpan) -> Output:
         start_time = time.time()
@@ -33,7 +35,7 @@ class Text2SQLEvaluationTask(Task):
 
 
 studio_client = StudioClient(
-    project="test-studio",
+    project=PROJECT_NAME,
     studio_url=os.getenv("PHARIA_STUDIO_ADDRESS"),
     auth_token=os.getenv("PHARIA_AI_TOKEN"),
     create_project=True,
@@ -45,35 +47,26 @@ class ExpectedOutput(BaseModel):
 
 
 studio_dataset_repo = StudioDatasetRepository(studio_client=studio_client)
+studio_benchmark_repo = StudioBenchmarkRepository(studio_client=studio_client)
 
 
 examples = [
     Example(
-        input=Input(
-            # natural_query=example["question"],
-            # schema=example["db_schema"],
-            natural_query=example["question"],
-            db_context=example["db_context"],
-        ),
-        expected_output=Output(
-            sql_query=None,
-            markdown_result=example.get("expected_markdown_result", ""),
-            explanation=None,
-        ),
+        input=example["question"],
+        expected_output=example["query"],
+        metadata={"db_id": example["db_id"]},
     )
     for example in generate_examples()
 ]
 
 
-studio_dataset = studio_dataset_repo.create_dataset(
-    examples=examples, dataset_name="demo-dataset"
-)
+# studio_dataset = studio_dataset_repo.create_dataset(
+#    examples=examples, dataset_name="test-dataset"
+# )
 
-studio_dataset.id
-
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
-)
+# logging.basicConfig(
+#     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+# )
 
 
 if __name__ == "__main__":
@@ -82,9 +75,7 @@ if __name__ == "__main__":
     aggregator = QaAggregationLogic()
 
     all_evaluations = []
-
-    example_count = 0
-    max_examples = 3
+    # benchmark = studio_benchmark_repository.create_benchmark(dataset.id, evaluation_logic, aggregation_logic)
 
     for example_data in generate_examples():
         # --- Build input and expected output
@@ -119,9 +110,6 @@ if __name__ == "__main__":
 
         # Run only first example
         # break
-        example_count += 1
-        if example_count >= max_examples:
-            break
 
         # --- Aggregate scores across all evaluated examples
     aggregated_scores = aggregator.aggregate(all_evaluations)

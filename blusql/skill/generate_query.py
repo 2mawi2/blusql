@@ -193,7 +193,7 @@ def generate_query(csi: Csi, input: Input) -> Output:
         markdown_result=None,
         explanation="Here is the data for the customers you requested, I hope you enjoy watching the tables!"
     )
-
+"""
 def generate_sql(csi, natural_query, db_context, similar_queries_text):
     prompt = SQL_GENERATION_PROMPT.format(
         db_technology=db_context.db_technology,
@@ -206,7 +206,7 @@ def generate_sql(csi, natural_query, db_context, similar_queries_text):
     response = csi.chat("llama-3.1-8b-instruct", [message], params)
     generated_sql = response.message.content.strip()
     return generated_sql
-    """
+
 
 if __name__ == "__main__":
     from pharia_skill.testing import DevCsi

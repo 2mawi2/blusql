@@ -12,6 +12,7 @@ export const useUsecaseQaStore = defineStore('usecase-qa', () => {
 
     try {
       const response = await CUSTOM_RAG_SERVICE.customQa({ natural_query: question })
+      console.log('SQLQUERY:' + response.sql_query)
       usecaseHistoryStore.addEntry(usecaseId, question, {
         query: response.sql_query,
         markdown: response.markdown_result,

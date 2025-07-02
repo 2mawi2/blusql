@@ -25,8 +25,6 @@ class Input(BaseModel):
 
 class Output(BaseModel):
     sql_query: Optional[str]
-    markdown_result: Optional[str]
-    explanation: Optional[str]
 
 
 SQL_GENERATION_PROMPT = """You are an expert SQL query generator for {db_technology}.
@@ -122,8 +120,6 @@ def generate_query(csi: Csi, input: Input) -> Output:
 
     return Output(
         sql_query=sql_query,
-        markdown_result=None,
-        explanation="Query generated successfully"
     )
 
     """

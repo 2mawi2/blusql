@@ -13,6 +13,15 @@ class Input(BaseModel):
     natural_query: str
     schema: Optional[str] = None
 
+class SqlToNlInput(BaseModel):
+    user_question: str
+    sql_result_markdown: str
+
+
+class Output(BaseModel):
+    natural_language_response: str
+
+
 @router.get("/health")
 def health() -> HealthResponse:
     return HealthResponse(status="ok")
@@ -24,7 +33,9 @@ async def qa(
     token: str = Depends(get_token),
     kernel: Kernel = Depends(with_kernel),
 ) -> Json:
-    skill = Skill(namespace="customer-playground", name="generate-bluesql")
+    generate_sql_skill = Skill(namespace="customer-playground", name="generate-bluesql")
+    sql_to_nl_skill = Skill(namespace="customer-playground", name="sql_to_nl")
+
     try:
         request = await request.json()
         context = get_db_context()
@@ -32,8 +43,22 @@ async def qa(
             "db_technology": context.db_technology,
             "schema": context.schema
         }
-        response = await kernel.run(skill, token, request)
+        response = await kernel.run(generate_sql_skill, token, request)
+
+        sql_result_markdown="""
+        USER 1 Marius
+        USER 2 Gustav
+        """
+
+        sqlToNlInput = SqlToNlInput(
+            user_question=request["natural_query"],
+            sql_result_markdown=sql_result_markdown
+        )
+
+        nl_response = await kernel.run(sql_to_nl_skill, token, sqlToNlInput.model_dump())
+        response["explanation"] = nl_response["natural_language_response"]
         return response
+            
     except KernelException as exp:
         error_message = ",".join(exp.args)
         if error_message.startswith(

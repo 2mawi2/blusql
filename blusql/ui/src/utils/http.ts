@@ -7,12 +7,13 @@ export class CustomRagService {
   constructor(readonly httpClient: Http) {}
 
   async customQa(body: CustomRagRequest): Promise<CustomRagResponse> {
-    return (
-      await this.httpClient.post<CustomRagResponse>(
-        'v1/skills/customer-playground/generate-bluesql/run',
-        { body },
-      )
-    ).data
+    return (await this.httpClient.post<CustomRagResponse>('generate-bluesql', { body })).data
+    // return (
+    //   await this.httpClient.post<CustomRagResponse>(
+    //     'v1/skills/customer-playground/generate-bluesql/run',
+    //     { body },
+    //   )
+    // ).data
   }
 }
 

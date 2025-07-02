@@ -1,5 +1,6 @@
 from typing import List, Dict, Any, Optional
 from pydantic import BaseModel
+from sql_executor import sql_query_to_markdown
 
 """
     {
@@ -8,17 +9,21 @@ from pydantic import BaseModel
       "db_id": "music_1"
     },
 """
+
+
 class PastQuery(BaseModel):
     question: str
     query: str
     db_id: str
 
+
 class DbContext(BaseModel):
     db_technology: str
     schema: str
 
+
 class DbContextProvider:
-    
+
     def get_schema(self) -> DbContext:
         schema = """
         CREATE TABLE employee (
@@ -58,13 +63,12 @@ CREATE TABLE shop (
     CONSTRAINT sqlite_autoindex_shop_1 UNIQUE (Shop_ID)
 );"""
         db_technology = "PostgreSQL Version 10"
-        return DbContext(
-            schema=schema,
-            db_technology=db_technology
-        )
+        return DbContext(schema=schema, db_technology=db_technology)
+
 
 class VectorSearchResponse(BaseModel):
     similar_queries: List[PastQuery]
+
 
 class PhariaPastQueryProvider:
     def search_similar_queries(self, natural_query: str) -> VectorSearchResponse:
@@ -73,21 +77,27 @@ class PhariaPastQueryProvider:
                 PastQuery(
                     question="What are the names of the three artists who have produced the most songs, and how many works did they produce?",
                     query="SELECT T1.artist_name ,  count(*) FROM artist AS T1 JOIN song AS T2 ON T1.artist_name  =  T2.artist_name GROUP BY T2.artist_name ORDER BY count(*) DESC LIMIT 3",
-                    db_id="music_1"
+                    db_id="music_1",
                 )
             ]
         )
-        
+
+
 class SqlEngineInput(BaseModel):
-    natural_query: str
+    sql_query: str
+
 
 class SqlEngineOutput(BaseModel):
     markdown: Optional[str]
     error_message: Optional[str]
 
+
 class SqlEngine:
     def execute(self, input: SqlEngineInput) -> SqlEngineOutput:
+
+        markdown, error = sql_query_to_markdown(input.sql_query)
+
         return SqlEngineOutput(
-            did_execute="markdown data"
-            error_message=None
+            markdown=markdown if markdown else None,
+            error_message=error if error else None,
         )

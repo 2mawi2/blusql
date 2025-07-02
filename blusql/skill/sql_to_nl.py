@@ -4,48 +4,34 @@ from pydantic import BaseModel
 
 class Input(BaseModel):
     user_question: str
-    sql_table_markdown: str
+    sql_result_markdown: str
 
 
 class Output(BaseModel):
-    natural_language_expressions: list[str]
+    natural_language_response: str
 
 
 @skill
 def sql_to_natural_language(csi: Csi, input: Input) -> Output:
-    content = f"""You are an expert in SQL and natural language processing. Your task is to analyze the given SQL table structure and answer the user's question, then provide relevant insights.
+    content = f"""You are a business analyst. Analyze the SQL query results and provide a concise summary.
 
 User Question: {input.user_question}
 
-SQL Table Structure:
-{input.sql_table_markdown}
+SQL Query Results:
+{input.sql_result_markdown}
 
-Please provide a response that:
-1. First answers the user's question based on what can be determined from the table structure
-2. Then provides 2-5 additional insights about the table that are relevant to the user's question
+Provide a brief response (2-3 sentences max) that:
+1. Directly answers the question with key numbers/insights
+2. Identifies the most important pattern or trend
+3. Suggests one actionable next step
 
-Focus on being concise and relevant. Return only the numbered responses, one per line, without additional formatting."""
+Be concise and business-focused. Avoid filler words and repetition."""
 
     message = Message.user(content)
-    params = ChatParams(max_tokens=512)
+    params = ChatParams(max_tokens=150)
     response = csi.chat("llama-3.1-8b-instruct", [message], params)
     
-    # Parse the response to extract individual expressions
-    response_text = response.message.content or ""
-    expressions = []
+    # Return the response directly as a single string
+    response_text = response.message.content or "I couldn't analyze the table structure for your question."
     
-    for line in response_text.strip().split('\n'):
-        line = line.strip()
-        # Remove numbering if present (e.g., "1. ", "2. ", etc.)
-        if line and (line[0].isdigit() or line.startswith('-') or line.startswith('*')):
-            # Find the first space after numbering and take the rest
-            parts = line.split(' ', 1)
-            if len(parts) > 1:
-                expressions.append(parts[1].strip())
-        elif line:  # Non-numbered line
-            expressions.append(line)
-    
-    # Filter out empty expressions
-    expressions = [expr for expr in expressions if expr]
-    
-    return Output(natural_language_expressions=expressions)
+    return Output(natural_language_response=response_text.strip())
